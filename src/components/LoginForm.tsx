@@ -93,17 +93,6 @@ export const LoginForm: React.FC = () => {
             >
               {loading ? "Signing in..." : "Sign In"}
             </Button>
-
-            <div className="mt-6 p-4 bg-gray-100 rounded-lg">
-              <p className="text-xs text-gray-700 text-center mb-2 font-medium">Demo Credentials:</p>
-              <div className="space-y-1 text-xs text-gray-500">
-                <p><span className="font-medium">Admin:</span> admin / admin</p>
-                <p><span className="font-medium">User:</span> user / user</p>
-              </div>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Note: Only approved users can access the system
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>

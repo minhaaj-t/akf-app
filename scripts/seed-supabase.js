@@ -317,15 +317,15 @@ async function seedDeliveryRequests(client) {
   const requests = [
     {
       user_id: 2,
-      current_time: '13:00:00',
-      requested_time: '14:00:00',
+      current_delivery_time: '13:00:00',
+      requested_delivery_time: '14:00:00',
       reason: 'Working from home today, need lunch later',
       status: 'approved',
     },
     {
       user_id: 3,
-      current_time: '20:30:00',
-      requested_time: '21:30:00',
+      current_delivery_time: '20:30:00',
+      requested_delivery_time: '21:30:00',
       reason: 'Late meeting, need dinner delayed',
       status: 'pending',
     },
@@ -333,10 +333,10 @@ async function seedDeliveryRequests(client) {
 
   for (const request of requests) {
     await client.query(`
-      INSERT INTO delivery_requests (user_id, current_time, requested_time, reason, status)
+      INSERT INTO delivery_requests (user_id, current_delivery_time, requested_delivery_time, reason, status)
       VALUES ($1, $2, $3, $4, $5)
       ON CONFLICT DO NOTHING
-    `, [request.user_id, request.current_time, request.requested_time, request.reason, request.status]);
+    `, [request.user_id, request.current_delivery_time, request.requested_delivery_time, request.reason, request.status]);
   }
   
   console.log('✅ Delivery requests seeded');

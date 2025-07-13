@@ -31,7 +31,7 @@ async function initializeDatabase(): Promise<IDatabaseService> {
     return dbService;
   }
 
-  // In browser environment, always use mock service
+  // In browser environment, always use mock database service
   if (isBrowser) {
     console.log('🌐 Browser environment detected, using mock database service');
     dbService = createMockDatabaseService();
@@ -117,6 +117,80 @@ async function initializeDatabase(): Promise<IDatabaseService> {
 }
 
 function createMockDatabaseService(): IDatabaseService {
+  // Mock user data for authentication
+  const mockUsers = [
+    {
+      id: 1,
+      username: 'admin',
+      email: 'admin@messfood.ae',
+      role: 'admin',
+      status: 'approved',
+      plan_type: 'yearly',
+      join_date: '2024-01-01',
+      delivery_plans: { afternoon: '12:00 PM', night: '8:00 PM' },
+      payment_status: 'paid',
+      days_active: 25,
+      avatar_config: {},
+    },
+    {
+      id: 2,
+      username: 'user',
+      email: 'user@example.com',
+      role: 'user',
+      status: 'approved',
+      plan_type: 'monthly',
+      join_date: '2024-01-15',
+      delivery_plans: { afternoon: '1:00 PM' },
+      payment_status: 'paid',
+      days_active: 10,
+      expiry_date: '2024-02-15',
+      avatar_config: {},
+    },
+    {
+      id: 3,
+      username: 'fatima_hassan',
+      email: 'fatima@example.com',
+      role: 'user',
+      status: 'approved',
+      plan_type: 'yearly',
+      join_date: '2024-01-10',
+      delivery_plans: { night: '8:30 PM' },
+      payment_status: 'unpaid',
+      payment_method: 'cash',
+      days_active: 15,
+      expiry_date: '2025-01-10',
+      avatar_config: {},
+    },
+    {
+      id: 4,
+      username: 'omar_khalil',
+      email: 'omar@example.com',
+      role: 'user',
+      status: 'pending',
+      plan_type: 'monthly',
+      join_date: '2024-01-20',
+      delivery_plans: { afternoon: '2:00 PM', night: '9:00 PM' },
+      payment_status: 'unpaid',
+      days_active: 5,
+      expiry_date: '2024-02-20',
+      avatar_config: {},
+    },
+    {
+      id: 5,
+      username: 'no_plans_user',
+      email: 'noplans@example.com',
+      role: 'user',
+      status: 'approved',
+      plan_type: 'monthly',
+      join_date: '2024-01-25',
+      delivery_plans: {},
+      payment_status: 'unpaid',
+      days_active: 2,
+      expiry_date: '2024-02-25',
+      avatar_config: {},
+    },
+  ];
+
   return {
     async connect() {
       console.log('🎭 Using mock database service');
@@ -126,7 +200,25 @@ function createMockDatabaseService(): IDatabaseService {
     },
     async query(sql: string, params: any[] = []) {
       console.log('🎭 Mock query:', sql, params);
-      // Return empty result for mock
+      
+      // Handle user queries
+      if (sql.includes('SELECT * FROM users WHERE username = ?')) {
+        const username = params[0];
+        const user = mockUsers.find(u => u.username === username);
+        return user ? [user] : [];
+      }
+      
+      if (sql.includes('SELECT * FROM users WHERE id = ?')) {
+        const id = params[0];
+        const user = mockUsers.find(u => u.id === id);
+        return user ? [user] : [];
+      }
+      
+      if (sql.includes('SELECT * FROM users ORDER BY')) {
+        return mockUsers;
+      }
+      
+      // Return empty array for other queries
       return [];
     }
   };
@@ -147,13 +239,22 @@ export class DatabaseService {
   }
 
   async connect(): Promise<void> {
-    this.db = await initializeDatabase();
-    await this.db.connect();
+    try {
+      this.db = await initializeDatabase();
+      await this.db.connect();
+    } catch (error) {
+      console.error('Failed to connect to database:', error);
+      this.db = createMockDatabaseService();
+    }
   }
 
   async disconnect(): Promise<void> {
     if (this.db) {
-      await this.db.disconnect();
+      try {
+        await this.db.disconnect();
+      } catch (error) {
+        console.error('Failed to disconnect from database:', error);
+      }
     }
   }
 
@@ -161,210 +262,350 @@ export class DatabaseService {
     if (!this.db) {
       await this.connect();
     }
-    return this.db!.query(sql, params);
+    try {
+      return await this.db!.query(sql, params);
+    } catch (error) {
+      console.error('Database query failed:', error);
+      return [];
+    }
   }
 
   // User operations
   async getUserByUsername(username: string): Promise<any> {
-    const users = await this.query(
-      'SELECT * FROM users WHERE username = ?',
-      [username]
-    );
-    return users[0] || null;
+    try {
+      const users = await this.query(
+        'SELECT * FROM users WHERE username = ?',
+        [username]
+      );
+      return users[0] || null;
+    } catch (error) {
+      console.error('Failed to get user by username:', error);
+      return null;
+    }
   }
 
   async getUserById(id: number): Promise<any> {
-    const users = await this.query(
-      'SELECT * FROM users WHERE id = ?',
-      [id]
-    );
-    return users[0] || null;
+    try {
+      const users = await this.query(
+        'SELECT * FROM users WHERE id = ?',
+        [id]
+      );
+      return users[0] || null;
+    } catch (error) {
+      console.error('Failed to get user by ID:', error);
+      return null;
+    }
   }
 
   async createUser(userData: any): Promise<any> {
-    const result = await this.query(
-      'INSERT INTO users (username, email, password_hash, role, status, plan_type, join_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [userData.username, userData.email, userData.password_hash, userData.role, userData.status, userData.plan_type, userData.join_date]
-    );
-    return result;
+    try {
+      const result = await this.query(
+        'INSERT INTO users (username, email, password_hash, role, status, plan_type, join_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [userData.username, userData.email, userData.password_hash, userData.role, userData.status, userData.plan_type, userData.join_date]
+      );
+      return result;
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      return null;
+    }
   }
 
   async updateUser(id: number, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-    const values = Object.values(updates);
-    values.push(id);
-    
-    return this.query(
-      `UPDATE users SET ${fields} WHERE id = ?`,
-      values
-    );
+    try {
+      const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(updates);
+      values.push(id);
+      
+      return await this.query(
+        `UPDATE users SET ${fields} WHERE id = ?`,
+        values
+      );
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      return null;
+    }
   }
 
   async getAllUsers(): Promise<any[]> {
-    return this.query('SELECT * FROM users ORDER BY created_at DESC');
+    try {
+      return await this.query('SELECT * FROM users ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all users:', error);
+      return [];
+    }
   }
 
   // Menu operations
-  async getMenusByDate(date: string): Promise<any[]> {
-    return this.query(
-      'SELECT * FROM menus WHERE date = ? ORDER BY time_slot',
-      [date]
-    );
-  }
-
   async getMenusByDateAndTimeSlot(date: string, timeSlot: string): Promise<any[]> {
-    return this.query(
-      'SELECT * FROM menus WHERE date = ? AND time_slot IN (?, ?) ORDER BY time_slot',
-      [date, timeSlot, 'both']
-    );
+    try {
+      return await this.query(
+        'SELECT * FROM menus WHERE date = ? AND time_slot = ? ORDER BY created_at DESC',
+        [date, timeSlot]
+      );
+    } catch (error) {
+      console.error('Failed to get menus by date and time slot:', error);
+      return [];
+    }
   }
 
   async createMenu(menuData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO menus (date, time_slot, main_dish, side_dish, rice, dessert, alternatives, notes, cutoff_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [menuData.date, menuData.time_slot, menuData.main_dish, menuData.side_dish, menuData.rice, menuData.dessert, menuData.alternatives, menuData.notes, menuData.cutoff_time]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO menus (date, time_slot, main_dish, side_dish, rice, dessert, alternatives, notes, cutoff_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [menuData.date, menuData.timeSlot, menuData.mainDish, menuData.sideDish, menuData.rice, menuData.dessert, menuData.alternatives, menuData.notes, menuData.cutoffTime]
+      );
+    } catch (error) {
+      console.error('Failed to create menu:', error);
+      return null;
+    }
   }
 
   async updateMenu(id: number, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-    const values = Object.values(updates);
-    values.push(id);
-    
-    return this.query(
-      `UPDATE menus SET ${fields} WHERE id = ?`,
-      values
-    );
+    try {
+      const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(updates);
+      values.push(id);
+      
+      return await this.query(
+        `UPDATE menus SET ${fields} WHERE id = ?`,
+        values
+      );
+    } catch (error) {
+      console.error('Failed to update menu:', error);
+      return null;
+    }
   }
 
   async deleteMenu(id: number): Promise<any> {
-    return this.query('DELETE FROM menus WHERE id = ?', [id]);
+    try {
+      return await this.query('DELETE FROM menus WHERE id = ?', [id]);
+    } catch (error) {
+      console.error('Failed to delete menu:', error);
+      return null;
+    }
   }
 
   async getAllMenus(): Promise<any[]> {
-    return this.query('SELECT * FROM menus ORDER BY date DESC, time_slot');
+    try {
+      return await this.query('SELECT * FROM menus ORDER BY date DESC, time_slot ASC');
+    } catch (error) {
+      console.error('Failed to get all menus:', error);
+      return [];
+    }
   }
 
   // Banner operations
   async getActiveBanners(): Promise<any[]> {
-    return this.query('SELECT * FROM banners WHERE active = true ORDER BY created_at DESC');
+    try {
+      return await this.query('SELECT * FROM banners WHERE active = true ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get active banners:', error);
+      return [];
+    }
   }
 
   async createBanner(bannerData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO banners (title, message, type, active) VALUES (?, ?, ?, ?)',
-      [bannerData.title, bannerData.message, bannerData.type, bannerData.active]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO banners (title, message, type, active) VALUES (?, ?, ?, ?)',
+        [bannerData.title, bannerData.message, bannerData.type, bannerData.active]
+      );
+    } catch (error) {
+      console.error('Failed to create banner:', error);
+      return null;
+    }
   }
 
   async updateBanner(id: number, updates: any): Promise<any> {
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
-    const values = Object.values(updates);
-    values.push(id);
-    
-    return this.query(
-      `UPDATE banners SET ${fields} WHERE id = ?`,
-      values
-    );
+    try {
+      const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+      const values = Object.values(updates);
+      values.push(id);
+      
+      return await this.query(
+        `UPDATE banners SET ${fields} WHERE id = ?`,
+        values
+      );
+    } catch (error) {
+      console.error('Failed to update banner:', error);
+      return null;
+    }
   }
 
   async deleteBanner(id: number): Promise<any> {
-    return this.query('DELETE FROM banners WHERE id = ?', [id]);
+    try {
+      return await this.query('DELETE FROM banners WHERE id = ?', [id]);
+    } catch (error) {
+      console.error('Failed to delete banner:', error);
+      return null;
+    }
   }
 
   // Feedback operations
   async createFeedback(feedbackData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO feedback (user_id, message, rating, status) VALUES (?, ?, ?, ?)',
-      [feedbackData.user_id, feedbackData.message, feedbackData.rating, feedbackData.status]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO feedback (user_id, username, message, rating, status) VALUES (?, ?, ?, ?, ?)',
+        [feedbackData.userId, feedbackData.username, feedbackData.message, feedbackData.rating, feedbackData.status]
+      );
+    } catch (error) {
+      console.error('Failed to create feedback:', error);
+      return null;
+    }
   }
 
   async getFeedbackByUser(userId: number): Promise<any[]> {
-    return this.query(
-      'SELECT * FROM feedback WHERE user_id = ? ORDER BY created_at DESC',
-      [userId]
-    );
+    try {
+      return await this.query(
+        'SELECT * FROM feedback WHERE user_id = ? ORDER BY created_at DESC',
+        [userId]
+      );
+    } catch (error) {
+      console.error('Failed to get feedback by user:', error);
+      return [];
+    }
   }
 
   async getAllFeedback(): Promise<any[]> {
-    return this.query('SELECT f.*, u.username FROM feedback f JOIN users u ON f.user_id = u.id ORDER BY f.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM feedback ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all feedback:', error);
+      return [];
+    }
   }
 
   // Delivery request operations
   async createDeliveryRequest(requestData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO delivery_requests (user_id, current_time, requested_time, reason, status) VALUES (?, ?, ?, ?, ?)',
-      [requestData.user_id, requestData.current_time, requestData.requested_time, requestData.reason, requestData.status]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO delivery_requests (user_id, username, current_delivery_time, requested_delivery_time, reason, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [requestData.userId, requestData.username, requestData.currentTime, requestData.requestedTime, requestData.reason, requestData.status]
+      );
+    } catch (error) {
+      console.error('Failed to create delivery request:', error);
+      return null;
+    }
   }
 
   async getDeliveryRequestsByUser(userId: number): Promise<any[]> {
-    return this.query(
-      'SELECT * FROM delivery_requests WHERE user_id = ? ORDER BY created_at DESC',
-      [userId]
-    );
+    try {
+      return await this.query(
+        'SELECT * FROM delivery_requests WHERE user_id = ? ORDER BY created_at DESC',
+        [userId]
+      );
+    } catch (error) {
+      console.error('Failed to get delivery requests by user:', error);
+      return [];
+    }
   }
 
   async getAllDeliveryRequests(): Promise<any[]> {
-    return this.query('SELECT dr.*, u.username FROM delivery_requests dr JOIN users u ON dr.user_id = u.id ORDER BY dr.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM delivery_requests ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all delivery requests:', error);
+      return [];
+    }
   }
 
   // Bug report operations
   async createBugReport(reportData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO bug_reports (title, description, severity, status, reporter_id, steps_to_reproduce, expected_behavior, actual_behavior, environment, priority, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [reportData.title, reportData.description, reportData.severity, reportData.status, reportData.reporter_id, reportData.steps_to_reproduce, reportData.expected_behavior, reportData.actual_behavior, reportData.environment, reportData.priority, reportData.category]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO bug_reports (title, description, severity, status, reporter_id, reporter_name, steps_to_reproduce, expected_behavior, actual_behavior, environment, priority, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [reportData.title, reportData.description, reportData.severity, reportData.status, reportData.reporterId, reportData.reporterName, reportData.stepsToReproduce, reportData.expectedBehavior, reportData.actualBehavior, reportData.environment, reportData.priority, reportData.category]
+      );
+    } catch (error) {
+      console.error('Failed to create bug report:', error);
+      return null;
+    }
   }
 
   async getAllBugReports(): Promise<any[]> {
-    return this.query('SELECT br.*, u.username as reporter_name FROM bug_reports br JOIN users u ON br.reporter_id = u.id ORDER BY br.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM bug_reports ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all bug reports:', error);
+      return [];
+    }
   }
 
   // App review operations
   async createAppReview(reviewData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO app_reviews (user_id, rating, title, review, category, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [reviewData.user_id, reviewData.rating, reviewData.title, reviewData.review, reviewData.category, reviewData.status]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO app_reviews (user_id, username, rating, title, review, category, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [reviewData.userId, reviewData.username, reviewData.rating, reviewData.title, reviewData.review, reviewData.category, reviewData.status]
+      );
+    } catch (error) {
+      console.error('Failed to create app review:', error);
+      return null;
+    }
   }
 
   async getAllAppReviews(): Promise<any[]> {
-    return this.query('SELECT ar.*, u.username FROM app_reviews ar JOIN users u ON ar.user_id = u.id ORDER BY ar.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM app_reviews ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all app reviews:', error);
+      return [];
+    }
   }
 
   // Issue operations
   async createIssue(issueData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO issues (title, description, type, status, priority, reporter_id, due_date, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [issueData.title, issueData.description, issueData.type, issueData.status, issueData.priority, issueData.reporter_id, issueData.due_date, issueData.tags]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO issues (title, description, type, status, priority, reporter_id, reporter_name, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [issueData.title, issueData.description, issueData.type, issueData.status, issueData.priority, issueData.reporterId, issueData.reporterName, JSON.stringify(issueData.tags)]
+      );
+    } catch (error) {
+      console.error('Failed to create issue:', error);
+      return null;
+    }
   }
 
   async getAllIssues(): Promise<any[]> {
-    return this.query('SELECT i.*, u.username as reporter_name FROM issues i JOIN users u ON i.reporter_id = u.id ORDER BY i.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM issues ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all issues:', error);
+      return [];
+    }
   }
 
   // Documentation operations
   async createDocumentation(docData: any): Promise<any> {
-    return this.query(
-      'INSERT INTO documentation (title, content, category, version, author_id, is_published) VALUES (?, ?, ?, ?, ?, ?)',
-      [docData.title, docData.content, docData.category, docData.version, docData.author_id, docData.is_published]
-    );
+    try {
+      return await this.query(
+        'INSERT INTO documentation (title, content, category, version, author, is_published) VALUES (?, ?, ?, ?, ?, ?)',
+        [docData.title, docData.content, docData.category, docData.version, docData.author, docData.isPublished]
+      );
+    } catch (error) {
+      console.error('Failed to create documentation:', error);
+      return null;
+    }
   }
 
   async getPublishedDocumentation(): Promise<any[]> {
-    return this.query('SELECT d.*, u.username as author_name FROM documentation d JOIN users u ON d.author_id = u.id WHERE d.is_published = true ORDER BY d.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM documentation WHERE is_published = true ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get published documentation:', error);
+      return [];
+    }
   }
 
   async getAllDocumentation(): Promise<any[]> {
-    return this.query('SELECT d.*, u.username as author_name FROM documentation d JOIN users u ON d.author_id = u.id ORDER BY d.created_at DESC');
+    try {
+      return await this.query('SELECT * FROM documentation ORDER BY created_at DESC');
+    } catch (error) {
+      console.error('Failed to get all documentation:', error);
+      return [];
+    }
   }
 }
 
-// Export singleton instance
-export const databaseService = DatabaseService.getInstance();
-
-// Export for backward compatibility
-export default databaseService; 
+// Export a singleton instance
+export const databaseService = DatabaseService.getInstance(); 

@@ -24,18 +24,22 @@ export const MenuSection: React.FC = () => {
     setError(null);
     
     try {
-      // In browser environment, always use mock data
-      // Database connections are handled server-side only
-      let menus: MenuItem[] = mockMenuItems.filter(item => item.date === selectedDate);
+      // Try to get from database first
+      let menus: MenuItem[] = [];
       
-      // Try to get from database if available (server-side only)
       try {
         const dbMenus = await databaseService.getMenusByDate(selectedDate);
         if (dbMenus && dbMenus.length > 0) {
           menus = dbMenus;
+          console.log('Using real database data');
+        } else {
+          // Fallback to mock data if no database results
+          menus = mockMenuItems.filter(item => item.date === selectedDate);
+          console.log('No database data found, using mock data');
         }
       } catch (dbError) {
-        console.log('Using mock data (database not available in browser)');
+        console.log('Database connection failed, using mock data');
+        menus = mockMenuItems.filter(item => item.date === selectedDate);
       }
 
       // Filter menus based on user's delivery plans

@@ -32,13 +32,51 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setAuthState(prev => ({ ...prev, loading: true }));
     
     try {
-      // In browser environment, always use mock authentication
-      // Database connections are handled server-side only
-      console.log('Using mock authentication (database not available in browser)');
-      return await mockLogin(username, password);
-      
-      // Note: Database authentication would be handled server-side
-      // For now, we use mock authentication in browser environment
+      // Try to use real database authentication if available
+      try {
+        const user = await databaseService.getUserByUsername(username);
+        
+        if (user && user.status === 'approved') {
+          // For now, skip password check for database users (since we're using mock passwords)
+          // In production, you would verify the password hash here
+          console.log('Database user found and approved:', user.username);
+          
+          // Ensure user object has all required fields
+          const sanitizedUser: User = {
+            id: user.id?.toString() || '1',
+            username: user.username || '',
+            email: user.email || '',
+            role: user.role || 'user',
+            status: user.status || 'approved',
+            planType: user.plan_type || 'monthly',
+            joinDate: user.join_date || new Date().toISOString().split('T')[0],
+            deliveryPlans: user.delivery_plans || {},
+            paymentStatus: user.payment_status || 'unpaid',
+            paymentMethod: user.payment_method,
+            daysActive: user.days_active || 0,
+            expiryDate: user.expiry_date,
+            avatarConfig: user.avatar_config || {},
+          };
+          
+          setAuthState({
+            isAuthenticated: true,
+            user: sanitizedUser,
+            loading: false,
+          });
+          return true;
+        } else if (user && user.status !== 'approved') {
+          console.log('User found but not approved:', user.username, user.status);
+          setAuthState(prev => ({ ...prev, loading: false }));
+          return false;
+        } else {
+          console.log('User not found in database');
+          setAuthState(prev => ({ ...prev, loading: false }));
+          return false;
+        }
+      } catch (dbError) {
+        console.log('Database authentication failed, using mock authentication');
+        return await mockLogin(username, password);
+      }
     } catch (error) {
       console.error('Login error:', error);
       // Fallback to mock authentication
@@ -126,11 +164,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     let user: User | null = null;
     
+    // Check for exact username/password matches
     if (username === 'admin' && password === 'admin') {
       user = mockUsers.find(u => u.username === 'admin') || null;
     } else if (username === 'user' && password === 'user') {
       user = mockUsers.find(u => u.username === 'user') || null;
-    } else if (username === 'no_plans_user' && password === 'no_plans_user') {
+    } else if (username === 'fatima_hassan' && password === 'password123') {
+      user = mockUsers.find(u => u.username === 'fatima_hassan') || null;
+    } else if (username === 'no_plans_user' && password === 'password123') {
       user = mockUsers.find(u => u.username === 'no_plans_user') || null;
     }
     

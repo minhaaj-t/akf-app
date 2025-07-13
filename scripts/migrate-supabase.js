@@ -135,8 +135,8 @@ async function createTables(client) {
     CREATE TABLE IF NOT EXISTS delivery_requests (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      current_time TIME NOT NULL,
-      requested_time TIME NOT NULL,
+      current_delivery_time TIME NOT NULL,
+      requested_delivery_time TIME NOT NULL,
       reason TEXT NOT NULL,
       status VARCHAR(10) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
