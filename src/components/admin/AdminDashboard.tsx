@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { useAuth } from "../../contexts/AuthContext";
-import { UserManagement } from "./UserManagement";
-import { MenuManagement } from "./MenuManagement";
 import { BannerManagement } from "./BannerManagement";
-import { PaymentManagement } from "./PaymentManagement";
 import { DeliveryManagement } from "./DeliveryManagement";
+import { MenuManagement } from "./MenuManagement";
+import { PaymentManagement } from "./PaymentManagement";
+import { UserManagement } from "./UserManagement";
+import { DeveloperPage } from "../developer/DeveloperPage";
 import { MobileBottomNav } from "../MobileBottomNav";
-import { BarChart2, Users, Utensils, Megaphone, CreditCard, Truck, CheckCircle2, Clock, DollarSign, Menu as MenuIcon } from "lucide-react";
+import { BarChart2, Users, CreditCard, Utensils, Megaphone, Truck, Code, Menu as MenuIcon, CheckCircle2, Clock, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -52,6 +53,7 @@ export const AdminDashboard: React.FC = () => {
     ...bottomTabs,
     { id: 'banners', label: 'Banners & Alerts', icon: <Megaphone size={20} /> },
     { id: 'delivery', label: 'Delivery Requests', icon: <Truck size={20} /> },
+    { id: 'developer', label: 'Developer', icon: <Code size={20} /> },
   ];
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -294,6 +296,7 @@ export const AdminDashboard: React.FC = () => {
           {activeTab === 'banners' && <BannerManagement />}
           {activeTab === 'payments' && <PaymentManagement />}
           {activeTab === 'delivery' && <DeliveryManagement />}
+          {activeTab === 'developer' && <DeveloperPage />}
         </div>
       </motion.div>
       {/* Mobile Bottom Navigation */}

@@ -8,8 +8,9 @@ import { MenuSection } from "./MenuSection";
 import { FeedbackSection } from "./FeedbackSection";
 import { DeliveryTimeRequest } from "./DeliveryTimeRequest";
 import { UserProfile } from "./UserProfile";
+import { DeveloperPage } from "../developer/DeveloperPage";
 import { MobileBottomNav } from "../MobileBottomNav";
-import { Home, User, CreditCard, Utensils, MessageCircle, Truck, Menu as MenuIcon } from "lucide-react";
+import { Home, User, CreditCard, Utensils, MessageCircle, Truck, Code, Menu as MenuIcon } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -140,6 +141,7 @@ export const UserDashboard: React.FC = () => {
     ...bottomTabs,
     { id: 'feedback', label: 'Feedback', icon: <MessageCircle size={20} /> },
     { id: 'delivery', label: 'Delivery Time', icon: <Truck size={20} /> },
+    { id: 'developer', label: 'Developer', icon: <Code size={20} /> },
   ];
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -249,6 +251,7 @@ export const UserDashboard: React.FC = () => {
         {activeTab === 'menu' && <MenuSection />}
         {activeTab === 'feedback' && <FeedbackSection />}
         {activeTab === 'delivery' && <DeliveryTimeRequest />}
+        {activeTab === 'developer' && <DeveloperPage />}
       </div>
       
       {/* Mobile Bottom Navigation */}
